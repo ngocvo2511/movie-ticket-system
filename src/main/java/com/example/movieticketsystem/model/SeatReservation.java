@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
@@ -20,16 +21,19 @@ public class SeatReservation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "screening_id", nullable = false)
     private Screening screening;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seat_id", nullable = false)
     private Seat seat;
 
     @Column(name = "is_reserved")
-    private boolean reserved;
+    private boolean reserved = false;
+
+    @Column(name = "reservation_expiry")
+    private LocalDateTime reservationExpiry;
 
     @Version
     @Column(name = "lock_version")

@@ -32,7 +32,21 @@ public class BookingController {
     private final UserService userService;
 
     @GetMapping("/screening/{id}")
-    public String showSeatSelection(@PathVariable Long id, Model model) {
+    public String showSeatSelection(@PathVariable Long id, Model model, HttpSession session) {
+        // If there are previously selected seats in session, release them
+        @SuppressWarnings("unchecked")
+        List<Long> previouslySelectedSeatIds = (List<Long>) session.getAttribute("seatIds");
+        Long previousScreeningId = (Long) session.getAttribute("screeningId");
+        
+        if (previouslySelectedSeatIds != null && previousScreeningId != null) {
+            for (Long seatId : previouslySelectedSeatIds) {
+                bookingService.releaseSeat(previousScreeningId, seatId);
+            }
+            // Clear the session attributes
+            session.removeAttribute("seatIds");
+            session.removeAttribute("screeningId");
+        }
+
         Optional<Screening> screening = screeningService.findScreeningById(id);
 
         if (screening.isEmpty()) {

@@ -22,11 +22,30 @@ public class BookingService {
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
 
+    // Constant for reservation timeout (in minutes)
+    private static final int RESERVATION_TIMEOUT_MINUTES = 15;
+
     /**
      * Get all available seats for a screening
      */
     public List<SeatReservation> getAvailableSeats(Long screeningId) {
+        // Clean up expired reservations first
+        cleanupExpiredReservations();
         return seatReservationRepository.findByScreeningId(screeningId);
+    }
+
+    /**
+     * Clean up expired reservations
+     */
+    @Transactional
+    public void cleanupExpiredReservations() {
+        LocalDateTime now = LocalDateTime.now();
+        List<SeatReservation> expiredReservations = seatReservationRepository.findByReservationExpiryLessThan(now);
+        for (SeatReservation reservation : expiredReservations) {
+            reservation.setReserved(false);
+            reservation.setReservationExpiry(null);
+            seatReservationRepository.save(reservation);
+        }
     }
 
     /**
@@ -49,13 +68,15 @@ public class BookingService {
         if (reservationOpt.isPresent()) {
             SeatReservation reservation = reservationOpt.get();
 
-            // Check if seat is already reserved
-            if (reservation.isReserved()) {
+            // Check if seat is already reserved and reservation hasn't expired
+            if (reservation.isReserved() && (reservation.getReservationExpiry() == null || 
+                reservation.getReservationExpiry().isAfter(LocalDateTime.now()))) {
                 return false;
             }
 
-            // Mark as reserved
+            // Mark as reserved with expiration time
             reservation.setReserved(true);
+            reservation.setReservationExpiry(LocalDateTime.now().plusMinutes(RESERVATION_TIMEOUT_MINUTES));
             seatReservationRepository.save(reservation);
             return true;
         }
@@ -85,8 +106,9 @@ public class BookingService {
             if (reservationOpt.isPresent()) {
                 SeatReservation reservation = reservationOpt.get();
 
-                // Mark as not reserved
+                // Mark as not reserved and clear expiration
                 reservation.setReserved(false);
+                reservation.setReservationExpiry(null);
                 seatReservationRepository.save(reservation);
                 return true;
             }

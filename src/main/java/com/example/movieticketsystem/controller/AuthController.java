@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 
-import java.util.HashSet;
-
 @Controller
 @RequiredArgsConstructor
 public class AuthController {
@@ -57,13 +55,8 @@ public class AuthController {
         // Set default role as customer
         Role customerRole = roleRepository.findByName("ROLE_CUSTOMER")
                 .orElseThrow(() -> new RuntimeException("Customer role not found"));
-        // Initialize roles set if it's null
-        if (user.getRoles() == null) {
-            user.setRoles(new HashSet<>());
-        }
+        user.setRole(customerRole);
 
-        // Add the customer role
-        user.getRoles().add(customerRole);
         // Register user
         userService.registerNewUser(user);
 

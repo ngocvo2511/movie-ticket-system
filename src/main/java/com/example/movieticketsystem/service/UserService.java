@@ -16,8 +16,6 @@ import org.springframework.stereotype.Service;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,14 +32,12 @@ public class UserService implements UserDetailsService {
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
-                getAuthorities(user.getRoles())
+                getAuthorities(user.getRole())
         );
     }
 
-    private Collection<? extends GrantedAuthority> getAuthorities(Set<Role> roles) {
-        return roles.stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName()))
-                .collect(Collectors.toList());
+    private Collection<? extends GrantedAuthority> getAuthorities(Role role) {
+        return Collections.singletonList(new SimpleGrantedAuthority(role.getName()));
     }
 
     public Optional<User> findByUsername(String username) {

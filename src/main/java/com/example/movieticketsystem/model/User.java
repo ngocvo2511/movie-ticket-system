@@ -38,13 +38,10 @@ public class User {
     @Column(name = "last_name")
     private String lastName;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Role> roles = new HashSet<>();
+    // Thay đổi từ ManyToMany thành ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.MERGE)
     private Set<Ticket> tickets = new HashSet<>();
@@ -67,23 +64,6 @@ public class User {
 
     @Override
     public int hashCode() {
-        // Use a constant or simple hashCode to avoid recursive calls
         return id != null ? id.hashCode() : 31;
     }
-
-//    public Role getRole() {
-//        if (this.roles == null || this.roles.isEmpty()) {
-//            return null;
-//        }
-//        // Trả về vai trò đầu tiên trong tập hợp
-//        return this.roles.iterator().next();
-//    }
-//
-//    public void setRole(Role role) {
-//        if (this.roles == null) {
-//            this.roles = new HashSet<>();
-//        }
-//        this.roles.clear();  // Xóa tất cả vai trò hiện có
-//        this.roles.add(role);  // Thêm vai trò mới
-//    }
 }

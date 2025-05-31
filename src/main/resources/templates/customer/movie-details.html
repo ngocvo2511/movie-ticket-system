@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${movie.title} + ' - Cinema Booking System'">Movie Details</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-5">
+  <div class="row">
+    <!-- Movie Details -->
+    <div class="col-md-4">
+      <img th:src="${movie.imageUrl != null ? movie.imageUrl : '/images/movie-placeholder.jpg'}"
+           th:alt="${movie.title}" class="img-fluid rounded mb-4">
+    </div>
+    <div class="col-md-8">
+      <h2 th:text="${movie.title}">Movie Title</h2>
+      <div class="mb-3">
+        <span class="badge bg-primary me-2" th:text="${movie.duration} + ' min'">120 min</span>
+        <span class="badge bg-secondary me-2" th:text="${movie.genre}">Genre</span>
+        <span class="badge bg-info" th:if="${movie.releaseDate}"
+              th:text="${#temporals.format(movie.releaseDate, 'dd MMM yyyy')}">Release Date</span>
+      </div>
+      <p class="lead" th:text="${movie.description}">Movie description goes here.</p>
+
+      <h3 class="mt-4">Showtimes</h3>
+
+      <div th:if="${#lists.isEmpty(screenings)}" class="alert alert-info">
+        <p>No upcoming screenings for this movie.</p>
+      </div>
+
+      <!-- Screenings by Date -->
+      <div th:unless="${#lists.isEmpty(screenings)}">
+        <div class="list-group">
+          <div th:each="screening, iterStat : ${screenings}"
+               th:with="date=${#temporals.format(screening.startTime, 'EEEE, MMM dd')},
+                                      prevDate=${!iterStat.first ? #temporals.format(screenings[(iterStat.index - 1)].startTime, 'EEEE, MMM dd') : ''}"
+               class="mb-3">
+
+            <!-- Date Header -->
+            <div th:if="${iterStat.first || date != prevDate}" class="fw-bold mb-2 mt-3" th:text="${date}">
+              Date
+            </div>
+
+            <!-- Screening Time -->
+            <div class="d-flex justify-content-between align-items-center border p-3 rounded mb-2">
+              <div>
+                <h5 class="mb-0" th:text="${#temporals.format(screening.startTime, 'HH:mm')}">14:30</h5>
+                <small class="text-muted">Hall <span th:text="${screening.hallNumber}">1</span></small>
+              </div>
+              <div>
+                <p class="mb-0 me-3 d-inline">
+                  $<span th:text="${#numbers.formatDecimal(screening.price, 1, 2)}">10.00</span>
+                </p>
+                <a th:href="@{/booking/screening/{id}(id=${screening.id})}" class="btn btn-primary">
+                  Book Seats
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <a th:href="@{/movies}" class="btn btn-secondary">Back to Movies</a>
+  </div>
+</div>
+
+<div th:replace="fragments/footer :: footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

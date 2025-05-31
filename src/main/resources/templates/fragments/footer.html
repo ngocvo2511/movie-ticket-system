@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<footer th:fragment="footer" class="bg-dark text-white py-4 mt-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Cinema Booking System</h5>
+                <p>Book your movie tickets easily and securely</p>
+            </div>
+            <div class="col-md-3">
+                <h5>Quick Links</h5>
+                <ul class="list-unstyled">
+                    <li><a href="#" class="text-white">About Us</a></li>
+                    <li><a href="#" class="text-white">Contact</a></li>
+                    <li><a href="#" class="text-white">Privacy Policy</a></li>
+                    <li><a href="#" class="text-white">Terms of Service</a></li>
+                </ul>
+            </div>
+            <div class="col-md-3">
+                <h5>Contact</h5>
+                <address>
+                    <p>123 Cinema Street<br>Movie City, MC 12345</p>
+                    <p>Email: info@cinemaapp.com<br>Phone: +1 123-456-7890</p>
+                </address>
+            </div>
+        </div>
+        <hr class="bg-light">
+        <div class="text-center">
+            <p class="mb-0">&copy; <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}"></span> Cinema Booking System. All rights reserved.</p>
+        </div>
+    </div>
+</footer>
+</body>
+</html>

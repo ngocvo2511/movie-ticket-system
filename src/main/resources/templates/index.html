@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cinema Booking System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<!-- Hero Section -->
+<div class="bg-primary text-white py-5">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <h1 class="display-4">Welcome to Our Cinema</h1>
+        <p class="lead">Book tickets for the latest movies with our easy-to-use platform</p>
+        <a th:href="@{/movies}" class="btn btn-light btn-lg mt-3">Browse Movies</a>
+      </div>
+      <div class="col-md-6 text-center">
+        <img th:src="@{/images/cinema.jpg}" alt="Cinema" class="img-fluid rounded" style="max-height: 300px;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Now Showing Section -->
+<div class="container my-5">
+  <h2 class="text-center mb-4">Now Showing</h2>
+
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+    <div th:each="movie : ${movies}" class="col">
+      <div class="card h-100 movie-card">
+        <img th:src="${movie.imageUrl != null ? movie.imageUrl : '/images/movie-placeholder.jpg'}"
+             th:alt="${movie.title}" class="card-img-top">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title" th:text="${movie.title}">Movie Title</h5>
+          <p class="card-text text-muted">
+            <span th:text="${movie.duration}">120</span> min |
+            <span th:text="${movie.genre}">Genre</span>
+          </p>
+          <p class="card-text" th:text="${#strings.abbreviate(movie.description, 100)}">Description</p>
+          <a th:href="@{/movies/{id}(id=${movie.id})}" class="btn btn-primary mt-auto">View Details</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center mt-4">
+    <a th:href="@{/movies}" class="btn btn-outline-primary">View All Movies</a>
+  </div>
+</div>
+
+<!-- Features Section -->
+<div class="bg-light py-5">
+  <div class="container">
+    <h2 class="text-center mb-4">Why Choose Our Service</h2>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center">
+            <div class="display-1 text-primary mb-3">
+              <i class="bi bi-ticket-perforated"></i>
+            </div>
+            <h3>Easy Booking</h3>
+            <p>Book your tickets in seconds with our user-friendly interface.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center">
+            <div class="display-1 text-primary mb-3">
+              <i class="bi bi-layout-text-window"></i>
+            </div>
+            <h3>Seat Selection</h3>
+            <p>Choose your preferred seats from our interactive seating plan.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center">
+            <div class="display-1 text-primary mb-3">
+              <i class="bi bi-phone"></i>
+            </div>
+            <h3>Digital Tickets</h3>
+            <p>Get your tickets directly to your account - no printing required.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div th:replace="fragments/footer :: footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Confirmation - Cinema Booking System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/main.css}">
+  <style>
+    .seat-tag {
+      display: inline-block;
+      padding: 5px 10px;
+      margin: 5px 3px;
+      background-color: #0d6efd;
+      color: white;
+      border-radius: 20px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0">Confirm Your Booking</h3>
+        </div>
+        <div class="card-body">
+          <!-- Booking Summary -->
+          <div class="booking-summary">
+            <h4>Booking Details</h4>
+            <hr>
+
+            <div class="row mb-3">
+              <div class="col-md-4 fw-bold">Movie:</div>
+              <div class="col-md-8" th:text="${screening.movie.title}">Movie Title</div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-4 fw-bold">Date & Time:</div>
+              <div class="col-md-8">
+                <span th:text="${#temporals.format(screening.startTime, 'EEEE, MMM dd, yyyy')}">Date</span> at
+                <span th:text="${#temporals.format(screening.startTime, 'HH:mm')}">Time</span>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-4 fw-bold">Hall:</div>
+              <div class="col-md-8" th:text="${screening.hallNumber}">Hall Number</div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-4 fw-bold">Selected Seats:</div>
+              <div class="col-md-8">
+                <div class="seat-tags">
+                  <div th:each="seat : ${seats}" class="seat-tag" th:text="${seat.seatName}">A1</div>
+                </div>
+                <div class="mt-2">
+                  <span class="fw-bold" th:text="${seats.size()}">1</span> seats selected
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-4 fw-bold">Price per seat:</div>
+              <div class="col-md-8">$<span th:text="${#numbers.formatDecimal(screening.price, 1, 2)}">10.00</span></div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-4 fw-bold">Total price:</div>
+              <div class="col-md-8 fw-bold">$<span th:text="${#numbers.formatDecimal(totalPrice, 1, 2)}">10.00</span></div>
+            </div>
+          </div>
+
+          <div class="alert alert-info mt-4">
+            <p class="mb-0">By proceeding with the payment, you agree to our booking <a href="#">terms and conditions</a>.</p>
+          </div>
+
+          <!-- Payment Form -->
+          <form th:action="@{/booking/complete}" method="post" class="mt-4">
+            <h4>Payment Information</h4>
+            <hr>
+
+            <!-- For demo purposes only - in real application, use a secure payment processor -->
+            <div class="mb-3">
+              <label for="cardNumber" class="form-label">Card Number</label>
+              <input type="text" class="form-control" id="cardNumber" value="4111 1111 1111 1111" readonly>
+              <small class="text-muted">For demo purposes, payment is simulated</small>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="expiryDate" class="form-label">Expiry Date</label>
+                <input type="text" class="form-control" id="expiryDate" value="12/25" readonly>
+              </div>
+              <div class="col-md-6">
+                <label for="cvv" class="form-label">CVV</label>
+                <input type="text" class="form-control" id="cvv" value="123" readonly>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="cardholderName" class="form-label">Cardholder Name</label>
+              <input type="text" class="form-control" id="cardholderName" value="Demo User" readonly>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+              <a th:href="@{/booking/screening/{id}(id=${screening.id})}" class="btn btn-secondary me-md-2">Back</a>
+              <button type="submit" class="btn btn-success">Confirm and Pay</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div th:replace="fragments/footer :: footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

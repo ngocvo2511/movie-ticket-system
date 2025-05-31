@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${movie.id == null ? 'Add Movie' : 'Edit Movie'} + ' - Cinema Booking System'">Movie Form</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0" th:text="${movie.id == null ? 'Add New Movie' : 'Edit Movie'}">Movie Form</h3>
+        </div>
+        <div class="card-body">
+          <form th:action="${movie.id == null ? '/admin/movies/add' : '/admin/movies/edit/' + movie.id}"
+                method="post" th:object="${movie}">
+
+            <input type="hidden" th:field="*{id}" />
+
+            <div class="mb-3">
+              <label for="title" class="form-label">Title *</label>
+              <input type="text" class="form-control" id="title" th:field="*{title}"
+                     th:classappend="${#fields.hasErrors('title')} ? 'is-invalid' : ''" required>
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('title')}" th:errors="*{title}">Title error</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" rows="3" th:field="*{description}"
+                        th:classappend="${#fields.hasErrors('description')} ? 'is-invalid' : ''"></textarea>
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">Description error</div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <label for="duration" class="form-label">Duration (min) *</label>
+                <input type="number" class="form-control" id="duration" min="1" th:field="*{duration}"
+                       th:classappend="${#fields.hasErrors('duration')} ? 'is-invalid' : ''" required>
+                <div class="invalid-feedback" th:if="${#fields.hasErrors('duration')}" th:errors="*{duration}">Duration error</div>
+              </div>
+
+              <div class="col-md-4">
+                <label for="genre" class="form-label">Genre</label>
+                <input type="text" class="form-control" id="genre" th:field="*{genre}"
+                       th:classappend="${#fields.hasErrors('genre')} ? 'is-invalid' : ''">
+                <div class="invalid-feedback" th:if="${#fields.hasErrors('genre')}" th:errors="*{genre}">Genre error</div>
+              </div>
+
+              <div class="col-md-4">
+                <label for="releaseDate" class="form-label">Release Date</label>
+                <input type="date" class="form-control" id="releaseDate" th:field="*{releaseDate}"
+                       th:classappend="${#fields.hasErrors('releaseDate')} ? 'is-invalid' : ''">
+                <div class="invalid-feedback" th:if="${#fields.hasErrors('releaseDate')}" th:errors="*{releaseDate}">Release date error</div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="imageUrl" class="form-label">Image URL</label>
+              <input type="url" class="form-control" id="imageUrl" th:field="*{imageUrl}"
+                     th:classappend="${#fields.hasErrors('imageUrl')} ? 'is-invalid' : ''">
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('imageUrl')}" th:errors="*{imageUrl}">Image URL error</div>
+              <small class="text-muted">Enter a URL to an image for this movie</small>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <a th:href="@{/admin/dashboard}" class="btn btn-secondary me-md-2">Cancel</a>
+              <button type="submit" class="btn btn-primary" th:text="${movie.id == null ? 'Add Movie' : 'Update Movie'}">Submit</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div th:replace="fragments/footer :: footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

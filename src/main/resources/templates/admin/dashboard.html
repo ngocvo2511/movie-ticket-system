@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Cinema Booking System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="container mt-5">
+  <h2>Admin Dashboard</h2>
+
+  <!-- Dashboard Overview -->
+  <div class="row mt-4">
+    <div class="col-md-4 mb-4">
+      <div class="card dashboard-card bg-primary text-white h-100">
+        <div class="card-body">
+          <h5 class="card-title">Movies</h5>
+          <h1 class="display-4" th:text="${movies.size()}">0</h1>
+          <p class="card-text">Total movies in the database</p>
+          <a th:href="@{/admin/movies/add}" class="btn btn-light mt-2">Add New Movie</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+      <div class="card dashboard-card bg-success text-white h-100">
+        <div class="card-body">
+          <h5 class="card-title">Screenings</h5>
+          <h1 class="display-4" th:text="${screenings.size()}">0</h1>
+          <p class="card-text">Total screenings scheduled</p>
+          <a th:href="@{/admin/screenings/add}" class="btn btn-light mt-2">Add New Screening</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+      <div class="card dashboard-card bg-info text-white h-100">
+        <div class="card-body">
+          <h5 class="card-title">Reports</h5>
+          <p class="card-text">View booking reports and statistics</p>
+          <a th:href="@{/admin/reports/tickets}" class="btn btn-light mt-2">Ticket Reports</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Movie Management -->
+  <div class="card mt-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <h3 class="mb-0">Movies</h3>
+      <a th:href="@{/admin/movies/add}" class="btn btn-light btn-sm">Add New</a>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover">
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Duration</th>
+            <th>Genre</th>
+            <th>Release Date</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr th:each="movie : ${movies}">
+            <td th:text="${movie.id}">1</td>
+            <td th:text="${movie.title}">Movie Title</td>
+            <td th:text="${movie.duration} + ' min'">120 min</td>
+            <td th:text="${movie.genre}">Action</td>
+            <td th:text="${movie.releaseDate != null ? #temporals.format(movie.releaseDate, 'MMM dd, yyyy') : 'N/A'}">Jan 1, 2023</td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <a th:href="@{/admin/movies/edit/{id}(id=${movie.id})}" class="btn btn-primary">Edit</a>
+                <a th:href="@{/admin/movies/delete/{id}(id=${movie.id})}" class="btn btn-danger"
+                   onclick="return confirm('Are you sure you want to delete this movie?')">Delete</a>
+              </div>
+            </td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(movies)}">
+            <td colspan="6" class="text-center">No movies found. <a th:href="@{/admin/movies/add}">Add a movie</a></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screening Management -->
+  <div class="card mt-4">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+      <h3 class="mb-0">Screenings</h3>
+      <a th:href="@{/admin/screenings/add}" class="btn btn-light btn-sm">Add New</a>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover">
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>Movie</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Hall</th>
+            <th>Price</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr th:each="screening : ${screenings}">
+            <td th:text="${screening.id}">1</td>
+            <td th:text="${screening.movie.title}">Movie Title</td>
+            <td th:text="${#temporals.format(screening.startTime, 'MMM dd, yyyy HH:mm')}">Jan 1, 2023 18:30</td>
+            <td th:text="${#temporals.format(screening.endTime, 'HH:mm')}">20:30</td>
+            <td th:text="${screening.hallNumber}">1</td>
+            <td>$<span th:text="${#numbers.formatDecimal(screening.price, 1, 2)}">10.00</span></td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <a th:href="@{/admin/screenings/edit/{id}(id=${screening.id})}" class="btn btn-primary">Edit</a>
+                <a th:href="@{/admin/screenings/delete/{id}(id=${screening.id})}" class="btn btn-danger"
+                   onclick="return confirm('Are you sure you want to delete this screening?')">Delete</a>
+              </div>
+            </td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(screenings)}">
+            <td colspan="7" class="text-center">No screenings found. <a th:href="@{/admin/screenings/add}">Add a screening</a></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div th:replace="fragments/footer :: footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

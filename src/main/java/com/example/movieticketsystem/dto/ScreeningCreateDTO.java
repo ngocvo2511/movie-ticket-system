@@ -32,13 +32,7 @@ public class ScreeningCreateDTO {
     @Digits(integer = 8, fraction = 2, message = "Price cannot exceed 8 digits in integer part and 2 digits in fraction part")
     private BigDecimal price;
 
-    @Min(value = 1, message = "Number of rows must be at least 1")
-    @Max(value = 50, message = "Number of rows cannot exceed 50")
-    private Integer rows = 10; // Default to 10 rows
-
-    @Min(value = 1, message = "Number of seats per row must be at least 1")
-    @Max(value = 30, message = "Number of seats per row cannot exceed 30")
-    private Integer seatsPerRow = 10; // Default to 10 seats per row
-
-    private boolean useLetterRowNames = true; // Default to using letter row names
+    @Min(value = 1, message = "Total number of seats must be at least 1")
+    @Max(value = 1000, message = "Total number of seats cannot exceed 1000")
+    private Integer totalSeats = 100; // Default to 100 seats (10 rows x 10 seats)
 }

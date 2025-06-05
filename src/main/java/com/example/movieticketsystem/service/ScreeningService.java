@@ -1,6 +1,7 @@
 package com.example.movieticketsystem.service;
 
 import com.example.movieticketsystem.model.Screening;
+import com.example.movieticketsystem.model.Ticket;
 import com.example.movieticketsystem.repository.MovieRepository;
 import com.example.movieticketsystem.repository.ScreeningRepository;
 import com.example.movieticketsystem.repository.SeatReservationRepository;
@@ -45,14 +46,47 @@ public class ScreeningService {
 
     @Transactional
     public Screening saveScreening(Screening screening) {
-        // Clear any existing seat reservations from the screening to avoid conflict
         if (screening.getId() != null) {
-            screening.setSeatReservations(null);
-            entityManager.flush();
+            // For existing screening, we need to handle seat reservations properly
+            Screening existingScreening = screeningRepository.findById(screening.getId())
+                    .orElseThrow(() -> new RuntimeException("Screening not found"));
+            
+            // Check if there are any active tickets for this screening
+            if (ticketRepository.existsByScreeningIdAndStatusNot(existingScreening.getId(), Ticket.TicketStatus.CANCELED)) {
+                throw new RuntimeException("Cannot modify screening that has active tickets");
+            }
+            
+            // Clear existing seat reservations
+            seatReservationRepository.deleteAll(existingScreening.getSeatReservations());
+            
+            // Clear the collection to avoid orphan removal issues
+            existingScreening.getSeatReservations().clear();
+            
+            // Update the screening properties
+            existingScreening.setMovie(screening.getMovie());
+            existingScreening.setStartTime(screening.getStartTime());
+            existingScreening.setEndTime(screening.getEndTime());
+            existingScreening.setHallNumber(screening.getHallNumber());
+            existingScreening.setPrice(screening.getPrice());
+            
+            // Update total seats if provided
+            if (screening.getTotalSeats() != null) {
+                existingScreening.setTotalSeats(screening.getTotalSeats());
+            }
+            
+            // Save the updated screening
+            return screeningRepository.save(existingScreening);
         }
-
-        // Save the screening
+        
+        // For new screening
         return screeningRepository.save(screening);
+    }
+
+    /**
+     * Check if a screening can be modified (no active tickets)
+     */
+    public boolean canModifyScreening(Long id) {
+        return !ticketRepository.existsByScreeningIdAndStatusNot(id, Ticket.TicketStatus.CANCELED);
     }
 
     /**
@@ -64,12 +98,12 @@ public class ScreeningService {
         Optional<Screening> screeningOpt = screeningRepository.findById(id);
 
         if (screeningOpt.isPresent()) {
-            // First, delete any tickets associated with this screening
-            entityManager.createNativeQuery("DELETE FROM tickets WHERE screening_id = :screeningId")
-                    .setParameter("screeningId", id)
-                    .executeUpdate();
+            // Check if there are any active tickets
+            if (ticketRepository.existsByScreeningIdAndStatusNot(id, Ticket.TicketStatus.CANCELED)) {
+                throw new RuntimeException("Cannot delete screening that has active tickets");
+            }
 
-            // Then delete seat reservations
+            // Delete seat reservations
             entityManager.createNativeQuery("DELETE FROM seat_reservations WHERE screening_id = :screeningId")
                     .setParameter("screeningId", id)
                     .executeUpdate();

@@ -39,8 +39,11 @@ public class Screening {
     @Column(name = "hall_number", nullable = false)
     private Integer hallNumber;
 
-    @Column(nullable = false)
+    @Column(name = "price", nullable = false)
     private BigDecimal price;
+
+    @Column(name = "total_seats")
+    private Integer totalSeats;
 
     @OneToMany(mappedBy = "screening", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<SeatReservation> seatReservations = new HashSet<>();

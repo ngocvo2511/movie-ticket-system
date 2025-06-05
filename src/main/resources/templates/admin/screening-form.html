@@ -73,46 +73,33 @@
               <div class="card-body">
                 <p class="alert alert-info">
                   <i class="bi bi-info-circle"></i>
-                  Changing these settings will reset the seating arrangement for this screening.
-                  If this is an existing screening, all previous seat reservations will be lost.
+                  The system will automatically arrange seats in rows of 10, named from A1-A10, B1-B10, etc.
+                  If this is an existing screening, all previous seat reservations will be lost when changing the total seats.
                 </p>
 
-                <div class="row mb-3">
-                  <div class="col-md-6">
-                    <label for="rows" class="form-label">Number of Rows</label>
-                    <input type="number" class="form-control" id="rows" th:field="*{rows}"
-                           min="1" max="50">
-                    <div class="invalid-feedback" th:if="${#fields.hasErrors('rows')}" th:errors="*{rows}">Rows error</div>
-                  </div>
-
-                  <div class="col-md-6">
-                    <label for="seatsPerRow" class="form-label">Seats Per Row</label>
-                    <input type="number" class="form-control" id="seatsPerRow" th:field="*{seatsPerRow}"
-                           min="1" max="30">
-                    <div class="invalid-feedback" th:if="${#fields.hasErrors('seatsPerRow')}" th:errors="*{seatsPerRow}">Seats per row error</div>
-                  </div>
-                </div>
-
-                <div class="form-check mb-3">
-                  <input class="form-check-input" type="checkbox" id="useLetterRowNames" th:field="*{useLetterRowNames}">
-                  <label class="form-check-label" for="useLetterRowNames">
-                    Use letter names for rows (A1-A10, B1-B10...) instead of numbers (Row 1, Seat 1...)
-                  </label>
+                <div class="mb-3">
+                  <label for="totalSeats" class="form-label">Total Number of Seats *</label>
+                  <input type="number" class="form-control" id="totalSeats" th:field="*{totalSeats}"
+                         min="1" max="1000" required>
+                  <div class="invalid-feedback" th:if="${#fields.hasErrors('totalSeats')}" th:errors="*{totalSeats}">Total seats error</div>
+                  <small class="form-text text-muted">Enter the total number of seats needed (1-1000)</small>
                 </div>
 
                 <!-- Preview of seat layout -->
                 <div class="mt-3">
-                  <h6>Example seat names with current settings:</h6>
+                  <h6>Example seat layout:</h6>
                   <p id="seatPreview" class="mt-2">
                     <span class="badge bg-light text-dark me-2">A1</span>
                     <span class="badge bg-light text-dark me-2">A2</span>
                     <span class="badge bg-light text-dark me-2">A3</span>
                     <span class="badge bg-light text-dark">...</span>
+                    <span class="badge bg-light text-dark me-2">A10</span>
                     <br>
                     <span class="badge bg-light text-dark me-2">B1</span>
                     <span class="badge bg-light text-dark me-2">B2</span>
                     <span class="badge bg-light text-dark me-2">B3</span>
                     <span class="badge bg-light text-dark">...</span>
+                    <span class="badge bg-light text-dark me-2">B10</span>
                   </p>
                 </div>
               </div>
@@ -142,43 +129,46 @@
 <!-- Script to update seat preview -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const rowsInput = document.getElementById('rows');
-    const seatsPerRowInput = document.getElementById('seatsPerRow');
-    const useLetterRowNames = document.getElementById('useLetterRowNames');
+    const totalSeatsInput = document.getElementById('totalSeats');
     const seatPreview = document.getElementById('seatPreview');
 
     function updateSeatPreview() {
-      const useLetters = useLetterRowNames.checked;
-      const rows = Math.min(Math.max(parseInt(rowsInput.value) || 10, 1), 2); // Show max 2 rows in preview
-      const seatsPerRow = Math.min(Math.max(parseInt(seatsPerRowInput.value) || 10, 1), 5); // Show max 5 seats per row in preview
+      const totalSeats = Math.min(Math.max(parseInt(totalSeatsInput.value) || 100, 1), 1000);
+      const SEATS_PER_ROW = 10;
+      const previewRows = Math.min(Math.ceil(totalSeats / SEATS_PER_ROW), 3); // Show max 3 rows in preview
 
       let previewHtml = '';
 
-      for (let row = 1; row <= rows; row++) {
-        for (let seat = 1; seat <= seatsPerRow; seat++) {
-          let seatName = '';
-          if (useLetters) {
-            const rowLetter = String.fromCharCode(64 + row); // 1 -> A, 2 -> B, etc.
-            seatName = rowLetter + seat;
-          } else {
-            seatName = 'Row ' + row + ', Seat ' + seat;
-          }
+      for (let row = 0; row < previewRows; row++) {
+        const rowLetter = String.fromCharCode(65 + row); // 0 -> A, 1 -> B, etc.
+        const seatsInThisRow = (row === Math.ceil(totalSeats / SEATS_PER_ROW) - 1 && totalSeats % SEATS_PER_ROW !== 0)
+          ? totalSeats % SEATS_PER_ROW
+          : SEATS_PER_ROW;
 
-          previewHtml += `<span class="badge bg-light text-dark me-2">${seatName}</span>`;
+        // Show first 3 seats
+        for (let seat = 1; seat <= 3; seat++) {
+          previewHtml += `<span class="badge bg-light text-dark me-2">${rowLetter}${seat}</span>`;
         }
         previewHtml += '<span class="badge bg-light text-dark">...</span>';
+        
+        // Show last seat in row
+        if (seatsInThisRow > 3) {
+          previewHtml += `<span class="badge bg-light text-dark me-2">${rowLetter}${seatsInThisRow}</span>`;
+        }
 
-        if (row < rows) {
+        if (row < previewRows - 1) {
           previewHtml += '<br>';
         }
+      }
+
+      if (Math.ceil(totalSeats / SEATS_PER_ROW) > previewRows) {
+        previewHtml += '<br><span class="badge bg-light text-dark">...</span>';
       }
 
       seatPreview.innerHTML = previewHtml;
     }
 
-    rowsInput.addEventListener('input', updateSeatPreview);
-    seatsPerRowInput.addEventListener('input', updateSeatPreview);
-    useLetterRowNames.addEventListener('change', updateSeatPreview);
+    totalSeatsInput.addEventListener('input', updateSeatPreview);
 
     // Initialize preview
     updateSeatPreview();

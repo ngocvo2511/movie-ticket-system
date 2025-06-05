@@ -115,16 +115,14 @@ public class AdminController {
             LocalDateTime endTime = screeningDTO.getStartTime().plusMinutes(movie.getDuration());
             screening.setEndTime(endTime);
 
+            // Set total seats
+            screening.setTotalSeats(screeningDTO.getTotalSeats());
+
             // Save screening first
             Screening savedScreening = screeningService.saveScreening(screening);
 
             // Then initialize seat reservations separately
-            seatService.initializeSeatReservations(
-                    savedScreening,
-                    screeningDTO.getRows(),
-                    screeningDTO.getSeatsPerRow(),
-                    screeningDTO.isUseLetterRowNames()
-            );
+            seatService.initializeSeatReservations(savedScreening);
 
             return "redirect:/admin/dashboard";
         } catch (Exception e) {
@@ -139,7 +137,7 @@ public class AdminController {
     }
 
     @GetMapping("/screenings/edit/{id}")
-    public String showEditScreeningForm(@PathVariable Long id, Model model) {
+    public String showEditScreeningForm(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         Optional<Screening> screeningOpt = screeningService.findScreeningById(id);
 
         if (screeningOpt.isEmpty()) {
@@ -147,6 +145,13 @@ public class AdminController {
         }
 
         Screening screening = screeningOpt.get();
+
+        // Check if screening can be modified
+        if (!screeningService.canModifyScreening(id)) {
+            redirectAttributes.addFlashAttribute("error", 
+                "Cannot modify screening because it has active tickets. Create a new screening instead.");
+            return "redirect:/admin/dashboard";
+        }
 
         // Convert Screening to DTO
         ScreeningCreateDTO screeningDTO = new ScreeningCreateDTO();
@@ -164,7 +169,7 @@ public class AdminController {
     @PostMapping("/screenings/edit/{id}")
     public String updateScreening(@PathVariable Long id,
                                   @Valid @ModelAttribute("screeningDTO") ScreeningCreateDTO screeningDTO,
-                                  BindingResult result, Model model) {
+                                  BindingResult result, Model model, RedirectAttributes redirectAttributes) {
         if (result.hasErrors()) {
             model.addAttribute("movies", movieService.findAllMovies());
             return "admin/screening-form";
@@ -177,45 +182,66 @@ public class AdminController {
 
         Screening screening = existingScreeningOpt.get();
 
-        // Update screening from DTO
-        Optional<Movie> movieOpt = movieService.findMovieById(screeningDTO.getMovieId());
-        if (movieOpt.isEmpty()) {
-            result.rejectValue("movieId", "error.screening", "Movie not found");
-            model.addAttribute("movies", movieService.findAllMovies());
-            return "admin/screening-form";
+        try {
+            // Update screening from DTO
+            Optional<Movie> movieOpt = movieService.findMovieById(screeningDTO.getMovieId());
+            if (movieOpt.isEmpty()) {
+                result.rejectValue("movieId", "error.screening", "Movie not found");
+                model.addAttribute("movies", movieService.findAllMovies());
+                return "admin/screening-form";
+            }
+
+            Movie movie = movieOpt.get();
+            screening.setMovie(movie);
+            screening.setStartTime(screeningDTO.getStartTime());
+            screening.setHallNumber(screeningDTO.getHallNumber());
+            screening.setPrice(screeningDTO.getPrice());
+
+            // Calculate end time based on movie duration
+            LocalDateTime endTime = screeningDTO.getStartTime().plusMinutes(movie.getDuration());
+            screening.setEndTime(endTime);
+
+            // Update total seats
+            screening.setTotalSeats(screeningDTO.getTotalSeats());
+
+            // Save screening
+            Screening savedScreening = screeningService.saveScreening(screening);
+
+            // Re-initialize seat layout
+            seatService.initializeSeatReservations(savedScreening);
+
+            redirectAttributes.addFlashAttribute("success", "Screening updated successfully.");
+            return "redirect:/admin/dashboard";
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("Cannot modify screening that has active tickets")) {
+                redirectAttributes.addFlashAttribute("error", 
+                    "Cannot modify screening because it has active tickets. Create a new screening instead.");
+            } else {
+                redirectAttributes.addFlashAttribute("error", "An error occurred: " + e.getMessage());
+            }
+            return "redirect:/admin/dashboard";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "An unexpected error occurred.");
+            return "redirect:/admin/dashboard";
         }
-
-        Movie movie = movieOpt.get();
-        screening.setMovie(movie);
-        screening.setStartTime(screeningDTO.getStartTime());
-        screening.setHallNumber(screeningDTO.getHallNumber());
-        screening.setPrice(screeningDTO.getPrice());
-
-        // Calculate end time based on movie duration
-        LocalDateTime endTime = screeningDTO.getStartTime().plusMinutes(movie.getDuration());
-        screening.setEndTime(endTime);
-
-        // Save screening
-        Screening savedScreening = screeningService.saveScreening(screening);
-
-        // Re-initialize seat layout if requested
-        seatService.initializeSeatReservations(
-                savedScreening,
-                screeningDTO.getRows(),
-                screeningDTO.getSeatsPerRow(),
-                screeningDTO.isUseLetterRowNames()
-        );
-
-        return "redirect:/admin/dashboard";
     }
 
     @GetMapping("/screenings/delete/{id}")
     public String deleteScreening(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        boolean deleted = screeningService.deleteScreening(id);
-        if (deleted) {
-            redirectAttributes.addFlashAttribute("success", "Screening deleted successfully.");
-        } else {
-            redirectAttributes.addFlashAttribute("error", "Failed to delete screening. It might have been already deleted or does not exist.");
+        try {
+            boolean deleted = screeningService.deleteScreening(id);
+            if (deleted) {
+                redirectAttributes.addFlashAttribute("success", "Screening deleted successfully.");
+            } else {
+                redirectAttributes.addFlashAttribute("error", "Failed to delete screening. It might have been already deleted or does not exist.");
+            }
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("Cannot delete screening that has active tickets")) {
+                redirectAttributes.addFlashAttribute("error", 
+                    "Cannot delete screening because it has active tickets.");
+            } else {
+                redirectAttributes.addFlashAttribute("error", "An error occurred: " + e.getMessage());
+            }
         }
         return "redirect:/admin/dashboard";
     }

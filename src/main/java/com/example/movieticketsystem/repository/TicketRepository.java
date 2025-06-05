@@ -25,4 +25,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     // Tìm vé cho các suất chiếu chưa bắt đầu
     List<Ticket> findByUserIdAndScreeningStartTimeAfterOrderByScreeningStartTime(Long userId, LocalDateTime now);
+
+    boolean existsByScreeningId(Long screeningId);
+
+    // Kiểm tra xem có vé active cho screening không
+    boolean existsByScreeningIdAndStatusNot(Long screeningId, Ticket.TicketStatus status);
 }

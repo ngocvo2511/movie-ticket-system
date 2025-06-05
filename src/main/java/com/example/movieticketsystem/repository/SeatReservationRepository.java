@@ -23,4 +23,6 @@ public interface SeatReservationRepository extends JpaRepository<SeatReservation
     boolean existsByScreeningAndSeatAndReserved(Screening screening, Seat seat, boolean reserved);
 
     List<SeatReservation> findByReservationExpiryLessThan(LocalDateTime dateTime);
+
+    List<SeatReservation> findByScreeningIdOrderBySeat_RowNumberAscSeat_SeatNumberAsc(Long screeningId);
 }

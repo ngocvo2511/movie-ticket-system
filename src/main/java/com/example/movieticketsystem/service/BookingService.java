@@ -31,7 +31,20 @@ public class BookingService {
     public List<SeatReservation> getAvailableSeats(Long screeningId) {
         // Clean up expired reservations first
         cleanupExpiredReservations();
-        return seatReservationRepository.findByScreeningId(screeningId);
+        
+        // Get seats with proper ordering
+        List<SeatReservation> seats = seatReservationRepository.findByScreeningIdOrderBySeat_RowNumberAscSeat_SeatNumberAsc(screeningId);
+        
+        // Sort seats by row number and seat number
+        seats.sort((a, b) -> {
+            int rowCompare = a.getSeat().getRowNumber().compareTo(b.getSeat().getRowNumber());
+            if (rowCompare == 0) {
+                return a.getSeat().getSeatNumber().compareTo(b.getSeat().getSeatNumber());
+            }
+            return rowCompare;
+        });
+        
+        return seats;
     }
 
     /**

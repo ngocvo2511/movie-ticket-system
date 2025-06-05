@@ -14,14 +14,33 @@
       justify-content: center;
       gap: 10px;
       margin: 30px 0;
-      max-width: 800px;
+      max-width: 600px;
       margin-left: auto;
       margin-right: auto;
+      padding: 0 20px;
+    }
+
+    /* Force new row after every 10 seats */
+    .seat:nth-child(10n) {
+      margin-right: auto;
+      margin-bottom: 20px;
+    }
+
+    .seat:nth-child(10n + 1) {
+      margin-left: auto;
+    }
+
+    /* Add row labels */
+    .seat:nth-child(10n + 1)::before {
+      content: attr(data-row);
+      position: absolute;
+      left: -25px;
+      font-weight: bold;
     }
 
     .seat {
-      width: 50px;
-      height: 50px;
+      width: 45px;
+      height: 45px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -31,6 +50,7 @@
       border: 1px solid #ccc;
       background-color: #f8f9fa;
       transition: all 0.2s ease-in-out;
+      position: relative;
     }
 
     .seat.available {
@@ -141,13 +161,18 @@
       <!-- Screen -->
       <div class="screen mt-3"></div>
 
-      <!-- Seat Layout - Simplified to just show seat names -->
+      <!-- Seat Layout -->
       <div class="seat-container">
-        <div th:each="seatRes : ${seats}"
-             th:class="${seatRes.reserved ? 'seat reserved' : 'seat available'}"
-             th:data-seat-id="${seatRes.seat.id}"
-             th:data-seat-name="${seatRes.seat.seatName}">
-          <span th:text="${seatRes.seat.seatName}">A1</span>
+        <div th:each="entry : ${seatRows}">
+          <div class="row-wrapper">
+            <div class="seat-row">
+              <div th:each="seat : ${entry.value}"
+                   th:class="${seat.reserved ? 'seat reserved' : 'seat available'}"
+                   th:attr="data-seat-id=${seat.seat.id},data-seat-name=${seat.seat.seatName}"
+                   th:text="${seat.seat.seatName}">
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import com.example.movieticketsystem.service.BookingService;
 import com.example.movieticketsystem.service.ScreeningService;
 import com.example.movieticketsystem.service.SeatService;
 import com.example.movieticketsystem.service.UserService;
+import com.example.movieticketsystem.service.ConcurrentBookingService;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -18,8 +19,14 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.TimeUnit;
 
 @Controller
 @RequestMapping("/booking")
@@ -30,6 +37,7 @@ public class BookingController {
     private final SeatService seatService;
     private final BookingService bookingService;
     private final UserService userService;
+    private final ConcurrentBookingService concurrentBookingService;
 
     @GetMapping("/screening/{id}")
     public String showSeatSelection(@PathVariable Long id, Model model, HttpSession session) {
@@ -56,8 +64,16 @@ public class BookingController {
         // Get available seats
         List<SeatReservation> availableSeats = bookingService.getAvailableSeats(id);
 
+        // Group seats by row using TreeMap to maintain row order
+        Map<Integer, List<SeatReservation>> seatsByRow = availableSeats.stream()
+                .collect(Collectors.groupingBy(
+                    sr -> sr.getSeat().getRowNumber(),
+                    TreeMap::new,
+                    Collectors.toList()
+                ));
+
         model.addAttribute("screening", screening.get());
-        model.addAttribute("seats", availableSeats);
+        model.addAttribute("seatRows", seatsByRow);
 
         return "customer/seat-selection";
     }
@@ -80,27 +96,22 @@ public class BookingController {
                 return "redirect:/booking/screening/" + screeningId;
             }
 
-            // Try to reserve all selected seats
-            List<Long> reservedSeatIds = new ArrayList<>();
-            boolean allSeatsReserved = true;
+            String username = authentication.getName();
+            Optional<User> user = userService.findByUsername(username);
 
-            for (Long seatId : selectedSeatIds) {
-                boolean reserved = bookingService.reserveSeat(screeningId, seatId);
-                if (reserved) {
-                    reservedSeatIds.add(seatId);
-                } else {
-                    allSeatsReserved = false;
-                }
+            if (user.isEmpty()) {
+                return "redirect:/login";
             }
 
-            if (!allSeatsReserved) {
-                // If some seats couldn't be reserved, release the ones that were
-                for (Long seatId : reservedSeatIds) {
-                    bookingService.releaseSeat(screeningId, seatId);
-                }
+            // Sử dụng ConcurrentBookingService để đặt vé đồng thời
+            CompletableFuture<BookingResult> bookingFuture = 
+                concurrentBookingService.reserveSeatsAsync(screeningId, selectedSeatIds, user.get());
 
-                redirectAttributes.addFlashAttribute("error",
-                        "Sorry, some seats are no longer available. Please select different seats.");
+            // Đợi kết quả với timeout
+            BookingResult result = bookingFuture.get(15, TimeUnit.SECONDS);
+
+            if (!result.isSuccess()) {
+                redirectAttributes.addFlashAttribute("error", result.getMessage());
                 return "redirect:/booking/screening/" + screeningId;
             }
 
@@ -111,8 +122,17 @@ public class BookingController {
             return "redirect:/booking/confirm";
 
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             redirectAttributes.addFlashAttribute("error",
                     "The booking process was interrupted. Please try again.");
+            return "redirect:/movies";
+        } catch (TimeoutException e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "The booking process timed out. Please try again.");
+            return "redirect:/movies";
+        } catch (ExecutionException e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "An error occurred during booking. Please try again.");
             return "redirect:/movies";
         }
     }
@@ -169,16 +189,16 @@ public class BookingController {
             return "redirect:/movies";
         }
 
-        List<Ticket> tickets = new ArrayList<>();
-        for (Long seatId : seatIds) {
-            Optional<Ticket> ticket = bookingService.createTicket(user.get(), screeningId, seatId);
-            ticket.ifPresent(tickets::add);
-        }
+        try {
+            // Tạo vé sau khi thanh toán thành công
+            CompletableFuture<BookingResult> ticketsFuture = 
+                concurrentBookingService.createTicketsAfterPayment(screeningId, seatIds, user.get());
+            
+            BookingResult result = ticketsFuture.get(15, TimeUnit.SECONDS);
 
-        if (tickets.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error",
-                    "Sorry, there was an error completing your booking. Please try again.");
-            return "redirect:/movies";
+            if (!result.isSuccess()) {
+                redirectAttributes.addFlashAttribute("error", result.getMessage());
+                return "redirect:/booking/screening/" + screeningId;
         }
 
         // Clear session data
@@ -186,8 +206,23 @@ public class BookingController {
         session.removeAttribute("seatIds");
 
         redirectAttributes.addFlashAttribute("success",
-                "Your booking is complete! " + tickets.size() + " tickets have been issued.");
+                    "Your booking is complete! " + result.getTickets().size() + " tickets have been issued.");
         return "redirect:/customer/tickets";
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            redirectAttributes.addFlashAttribute("error",
+                    "The booking process was interrupted. Please try again.");
+            return "redirect:/movies";
+        } catch (TimeoutException e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "The booking process timed out. Please try again.");
+            return "redirect:/movies";
+        } catch (ExecutionException e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "An error occurred during booking. Please try again.");
+            return "redirect:/movies";
+        }
     }
 
     @PostMapping("/cancel/{id}")

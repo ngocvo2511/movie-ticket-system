@@ -12,8 +12,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -43,63 +46,40 @@ public class SeatService {
     }
 
     /**
-     * Initialize seats for a cinema hall with customizable rows and seats per row
-     *
-     * @param hallNumber Hall number
-     * @param rows Number of rows
-     * @param seatsPerRow Number of seats per row
-     * @param useLetterRowNames Whether to use letters (A,B,C...) instead of numbers (1,2,3...) for row names
+     * Create seats for a specific screening configuration
      */
     @Transactional
-    public void initializeSeatsForHall(int hallNumber, int rows, int seatsPerRow, boolean useLetterRowNames) {
-        // Delete existing seats using a direct query to avoid Hibernate caching issues
-        entityManager.createNativeQuery("DELETE FROM seat_reservations WHERE seat_id IN (SELECT id FROM seats WHERE hall_number = :hallNumber)")
-                .setParameter("hallNumber", hallNumber)
-                .executeUpdate();
-
-        entityManager.createNativeQuery("DELETE FROM seats WHERE hall_number = :hallNumber")
-                .setParameter("hallNumber", hallNumber)
-                .executeUpdate();
-
-        // Clear the persistence context to avoid stale data
-        entityManager.flush();
-        entityManager.clear();
-
-        // Create new seats
+    public List<Seat> createSeatsForScreening(int hallNumber, int totalSeats) {
         List<Seat> newSeats = new ArrayList<>();
-        for (int row = 1; row <= rows; row++) {
-            for (int seatNum = 1; seatNum <= seatsPerRow; seatNum++) {
+        final int SEATS_PER_ROW = 10;
+        int numberOfRows = (int) Math.ceil((double) totalSeats / SEATS_PER_ROW);
+
+        for (int row = 0; row < numberOfRows; row++) {
+            char rowLetter = (char) ('A' + row);
+            int seatsInThisRow = (row == numberOfRows - 1 && totalSeats % SEATS_PER_ROW != 0) 
+                ? totalSeats % SEATS_PER_ROW 
+                : SEATS_PER_ROW;
+
+            for (int seatNum = 1; seatNum <= seatsInThisRow; seatNum++) {
                 Seat seat = new Seat();
                 seat.setHallNumber(hallNumber);
-                seat.setRowNumber(row);
+                seat.setRowNumber(row + 1);
                 seat.setSeatNumber(seatNum);
-
-                // Set the custom seat name property
-                if (useLetterRowNames) {
-                    char rowLetter = (char) ('A' + row - 1); // Convert 1 to 'A', 2 to 'B', etc.
-                    seat.setSeatName(rowLetter + String.valueOf(seatNum)); // Example: "A1", "B5", etc.
-                } else {
-                    seat.setSeatName("Row " + row + ", Seat " + seatNum);
-                }
-
+                seat.setSeatName(String.format("%c%d", rowLetter, seatNum));
                 newSeats.add(seatRepository.save(seat));
             }
         }
-
+        
         entityManager.flush();
+        return newSeats;
     }
 
     /**
      * Initialize seat reservations for a screening with custom seat layout
      */
     @Transactional
-    public void initializeSeatReservations(Screening screening, int rows, int seatsPerRow, boolean useLetterRowNames) {
-        int hallNumber = screening.getHallNumber();
-
-        // Create or update hall layout
-        initializeSeatsForHall(hallNumber, rows, seatsPerRow, useLetterRowNames);
-
-        // Delete existing reservations if any
+    public void initializeSeatReservations(Screening screening) {
+        // Delete existing reservations for this screening only
         entityManager.createNativeQuery("DELETE FROM seat_reservations WHERE screening_id = :screeningId")
                 .setParameter("screeningId", screening.getId())
                 .executeUpdate();
@@ -107,31 +87,22 @@ public class SeatService {
         entityManager.flush();
         entityManager.clear();
 
-        // Reload the screening to avoid cache issues
-        Screening refreshedScreening = entityManager.find(Screening.class, screening.getId());
+        // Create new seats for this screening
+        List<Seat> seats = createSeatsForScreening(screening.getHallNumber(), screening.getTotalSeats());
 
         // Create new reservations for each seat
-        List<Seat> seats = seatRepository.findByHallNumber(hallNumber);
-
+        List<SeatReservation> newReservations = new ArrayList<>();
         for (Seat seat : seats) {
             SeatReservation reservation = new SeatReservation();
-            reservation.setScreening(refreshedScreening);
+            reservation.setScreening(screening);
             reservation.setSeat(seat);
             reservation.setReserved(false);
             reservation.setVersion(0);
-
-            seatReservationRepository.save(reservation);
+            newReservations.add(reservation);
         }
 
+        // Save all reservations in batch
+        seatReservationRepository.saveAll(newReservations);
         entityManager.flush();
-    }
-
-    /**
-     * Initialize seat reservations with default values
-     */
-    @Transactional
-    public void initializeSeatReservations(Screening screening) {
-        // Default to 10 seats per row and 10 rows, with letter row names
-        initializeSeatReservations(screening, 10, 10, true);
     }
 }

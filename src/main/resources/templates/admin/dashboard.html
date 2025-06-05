@@ -98,6 +98,16 @@
       <a th:href="@{/admin/screenings/add}" class="btn btn-light btn-sm">Add New</a>
     </div>
     <div class="card-body">
+      <!-- Flash Messages -->
+      <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <span th:text="${success}">Success message</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <span th:text="${error}">Error message</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+
       <div class="table-responsive">
         <table class="table table-striped table-hover">
           <thead>
@@ -108,6 +118,7 @@
             <th>End Time</th>
             <th>Hall</th>
             <th>Price</th>
+            <th>Status</th>
             <th>Actions</th>
           </tr>
           </thead>
@@ -120,15 +131,36 @@
             <td th:text="${screening.hallNumber}">1</td>
             <td>$<span th:text="${#numbers.formatDecimal(screening.price, 1, 2)}">10.00</span></td>
             <td>
-              <div class="btn-group btn-group-sm">
-                <a th:href="@{/admin/screenings/edit/{id}(id=${screening.id})}" class="btn btn-primary">Edit</a>
-                <a th:href="@{/admin/screenings/delete/{id}(id=${screening.id})}" class="btn btn-danger"
-                   onclick="return confirm('Are you sure you want to delete this screening?')">Delete</a>
-              </div>
+                <span th:with="canModify=${@screeningService.canModifyScreening(screening.id)}">
+                    <span th:if="${canModify}" class="badge bg-success">Editable</span>
+                    <span th:unless="${canModify}" class="badge bg-warning">Has Active Tickets</span>
+                </span>
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <span th:with="canModify=${@screeningService.canModifyScreening(screening.id)}">
+                        <a th:if="${canModify}" 
+                           th:href="@{/admin/screenings/edit/{id}(id=${screening.id})}" 
+                           class="btn btn-primary">Edit</a>
+                        <a th:unless="${canModify}" 
+                           href="#" 
+                           class="btn btn-primary disabled" 
+                           title="Cannot edit screening with active tickets">Edit</a>
+                        
+                        <a th:if="${canModify}"
+                           th:href="@{/admin/screenings/delete/{id}(id=${screening.id})}" 
+                           class="btn btn-danger"
+                           onclick="return confirm('Are you sure you want to delete this screening?')">Delete</a>
+                        <a th:unless="${canModify}"
+                           href="#"
+                           class="btn btn-danger disabled"
+                           title="Cannot delete screening with active tickets">Delete</a>
+                    </span>
+                </div>
             </td>
           </tr>
           <tr th:if="${#lists.isEmpty(screenings)}">
-            <td colspan="7" class="text-center">No screenings found. <a th:href="@{/admin/screenings/add}">Add a screening</a></td>
+            <td colspan="8" class="text-center">No screenings found. <a th:href="@{/admin/screenings/add}">Add a screening</a></td>
           </tr>
           </tbody>
         </table>

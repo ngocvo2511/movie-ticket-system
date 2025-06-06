@@ -53,7 +53,7 @@ public class BookingService {
     @Transactional
     public void cleanupExpiredReservations() {
         LocalDateTime now = LocalDateTime.now();
-        List<SeatReservation> expiredReservations = seatReservationRepository.findByReservationExpiryLessThan(now);
+        List<SeatReservation> expiredReservations = seatReservationRepository.findByReservationExpiryLessThanAndConfirmedFalse(now);
         for (SeatReservation reservation : expiredReservations) {
             reservation.setReserved(false);
             reservation.setReservationExpiry(null);
@@ -81,14 +81,20 @@ public class BookingService {
         if (reservationOpt.isPresent()) {
             SeatReservation reservation = reservationOpt.get();
 
-            // Check if seat is already reserved and reservation hasn't expired
+            // Kiểm tra xem ghế đã được xác nhận chưa
+            if (reservation.isConfirmed()) {
+                return false;
+            }
+
+            // Kiểm tra xem ghế có đang được đặt tạm thời và chưa hết hạn không
             if (reservation.isReserved() && (reservation.getReservationExpiry() == null || 
                 reservation.getReservationExpiry().isAfter(LocalDateTime.now()))) {
                 return false;
             }
 
-            // Mark as reserved with expiration time
+            // Đặt chỗ tạm thời với thời gian hết hạn
             reservation.setReserved(true);
+            reservation.setConfirmed(false);
             reservation.setReservationExpiry(LocalDateTime.now().plusMinutes(RESERVATION_TIMEOUT_MINUTES));
             seatReservationRepository.save(reservation);
             return true;
@@ -119,11 +125,13 @@ public class BookingService {
             if (reservationOpt.isPresent()) {
                 SeatReservation reservation = reservationOpt.get();
 
-                // Mark as not reserved and clear expiration
-                reservation.setReserved(false);
-                reservation.setReservationExpiry(null);
-                seatReservationRepository.save(reservation);
-                return true;
+                // Chỉ giải phóng ghế nếu nó chưa được xác nhận
+                if (!reservation.isConfirmed()) {
+                    reservation.setReserved(false);
+                    reservation.setReservationExpiry(null);
+                    seatReservationRepository.save(reservation);
+                    return true;
+                }
             }
 
             return false;
@@ -149,10 +157,18 @@ public class BookingService {
             Screening screening = screeningOpt.get();
             Seat seat = seatOpt.get();
 
-            // Find reservation to check if the seat is already reserved
+            // Tìm reservation để kiểm tra và xác nhận
             Optional<SeatReservation> reservationOpt = seatReservationRepository.findByScreeningAndSeat(screening, seat);
 
             if (reservationOpt.isPresent() && reservationOpt.get().isReserved()) {
+                SeatReservation reservation = reservationOpt.get();
+                
+                // Xác nhận đặt chỗ và xóa thời gian hết hạn
+                reservation.setConfirmed(true);
+                reservation.setReservationExpiry(null);
+                seatReservationRepository.save(reservation);
+
+                // Tạo vé
                 Ticket ticket = new Ticket();
                 ticket.setUser(user);
                 ticket.setScreening(screening);

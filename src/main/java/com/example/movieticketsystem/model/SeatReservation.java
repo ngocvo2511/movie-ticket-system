@@ -32,6 +32,9 @@ public class SeatReservation {
     @Column(name = "is_reserved")
     private boolean reserved = false;
 
+    @Column(name = "is_confirmed")
+    private boolean confirmed = false;
+
     @Column(name = "reservation_expiry")
     private LocalDateTime reservationExpiry;
 

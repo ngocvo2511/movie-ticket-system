@@ -15,7 +15,7 @@
 
   <!-- Dashboard Overview -->
   <div class="row mt-4">
-    <div class="col-md-4 mb-4">
+    <div class="col-md-6 mb-4">
       <div class="card dashboard-card bg-primary text-white h-100">
         <div class="card-body">
           <h5 class="card-title">Movies</h5>
@@ -26,23 +26,13 @@
       </div>
     </div>
 
-    <div class="col-md-4 mb-4">
+    <div class="col-md-6 mb-4">
       <div class="card dashboard-card bg-success text-white h-100">
         <div class="card-body">
           <h5 class="card-title">Screenings</h5>
           <h1 class="display-4" th:text="${screenings.size()}">0</h1>
           <p class="card-text">Total screenings scheduled</p>
           <a th:href="@{/admin/screenings/add}" class="btn btn-light mt-2">Add New Screening</a>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-4 mb-4">
-      <div class="card dashboard-card bg-info text-white h-100">
-        <div class="card-body">
-          <h5 class="card-title">Reports</h5>
-          <p class="card-text">View booking reports and statistics</p>
-          <a th:href="@{/admin/reports/tickets}" class="btn btn-light mt-2">Ticket Reports</a>
         </div>
       </div>
     </div>

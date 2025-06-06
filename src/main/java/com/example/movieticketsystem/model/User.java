@@ -38,7 +38,6 @@ public class User {
     @Column(name = "last_name")
     private String lastName;
 
-    // Thay đổi từ ManyToMany thành ManyToOne
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
     private Role role;

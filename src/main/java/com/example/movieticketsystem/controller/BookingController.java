@@ -104,7 +104,7 @@ public class BookingController {
                 return "redirect:/login";
             }
 
-            // Sử dụng ConcurrentBookingService để đặt vé đồng thời
+
             CompletableFuture<BookingResult> bookingFuture = 
                 concurrentBookingService.reserveSeatsAsync(screeningId, selectedSeatIds, user.get());
 

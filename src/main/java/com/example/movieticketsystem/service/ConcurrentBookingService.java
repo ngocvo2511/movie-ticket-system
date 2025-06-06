@@ -29,7 +29,6 @@ public class ConcurrentBookingService {
 
     /**
      * Đặt nhiều ghế đồng thời cho một screening
-     * @return CompletableFuture chứa kết quả đặt vé
      */
     public CompletableFuture<BookingResult> reserveSeatsAsync(Long screeningId, List<Long> seatIds, User user) {
         return CompletableFuture.supplyAsync(() -> {
@@ -70,7 +69,6 @@ public class ConcurrentBookingService {
                         return new BookingResult(false, "Not all seats available. Please try again.");
                     }
 
-                    // Chỉ trả về kết quả đặt chỗ thành công, chưa tạo vé
                     return new BookingResult(true, "Đặt chỗ thành công", null);
 
                 } catch (Exception e) {

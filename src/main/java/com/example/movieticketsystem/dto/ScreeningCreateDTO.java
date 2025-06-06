@@ -34,5 +34,5 @@ public class ScreeningCreateDTO {
 
     @Min(value = 1, message = "Total number of seats must be at least 1")
     @Max(value = 1000, message = "Total number of seats cannot exceed 1000")
-    private Integer totalSeats = 100; // Default to 100 seats (10 rows x 10 seats)
+    private Integer totalSeats = 100;
 }

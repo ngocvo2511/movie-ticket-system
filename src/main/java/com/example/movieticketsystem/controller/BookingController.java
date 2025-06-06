@@ -27,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 @Controller
 @RequestMapping("/booking")
@@ -237,13 +238,18 @@ public class BookingController {
             return "redirect:/login";
         }
 
-        boolean canceled = bookingService.cancelTicket(id, user.get().getId());
+        try {
+            boolean canceled = bookingService.cancelTicket(id, user.get().getId());
 
-        if (!canceled) {
+            if (!canceled) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Cannot cancel ticket. This ticket may have been canceled previously.");
+            } else {
+                redirectAttributes.addFlashAttribute("success", "Ticket has been canceled successfully.");
+            }
+        } catch (OptimisticLockingFailureException e) {
             redirectAttributes.addFlashAttribute("error",
-                    "Unable to cancel the ticket. Please contact customer support.");
-        } else {
-            redirectAttributes.addFlashAttribute("success", "Your ticket has been canceled successfully.");
+                    "This ticket is being processed by another operation. Please try again.");
         }
 
         return "redirect:/customer/tickets";

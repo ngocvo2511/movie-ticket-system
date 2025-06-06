@@ -13,10 +13,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Controller
 @RequestMapping("/admin")
@@ -27,6 +33,8 @@ public class AdminController {
     private final ScreeningService screeningService;
     private final SeatService seatService;
     private final TicketService ticketService;
+    
+    private static final String UPLOAD_DIR = "src/main/resources/static/uploads/movies/";
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
@@ -43,10 +51,35 @@ public class AdminController {
     }
 
     @PostMapping("/movies/add")
-    public String addMovie(@Valid @ModelAttribute Movie movie, BindingResult result) {
+    public String addMovie(@Valid @ModelAttribute Movie movie, 
+                         BindingResult result,
+                         @RequestParam("imageFile") MultipartFile imageFile) {
         if (result.hasErrors()) {
             return "admin/movie-form";
         }
+
+        if (!imageFile.isEmpty()) {
+            try {
+                // Generate unique filename
+                String originalFilename = imageFile.getOriginalFilename();
+                String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+                String filename = UUID.randomUUID().toString() + extension;
+                
+                // Save file
+                Path uploadPath = Paths.get(UPLOAD_DIR);
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+                Files.copy(imageFile.getInputStream(), uploadPath.resolve(filename));
+                
+                // Set image URL
+                movie.setImageUrl("/uploads/movies/" + filename);
+            } catch (IOException e) {
+                result.rejectValue("imageUrl", "error.movie", "Failed to upload image");
+                return "admin/movie-form";
+            }
+        }
+
         movieService.saveMovie(movie);
         return "redirect:/admin/dashboard";
     }
@@ -63,10 +96,50 @@ public class AdminController {
     }
 
     @PostMapping("/movies/edit/{id}")
-    public String updateMovie(@PathVariable Long id, @Valid @ModelAttribute Movie movie, BindingResult result) {
+    public String updateMovie(@PathVariable Long id, 
+                           @Valid @ModelAttribute Movie movie, 
+                           BindingResult result,
+                           @RequestParam("imageFile") MultipartFile imageFile) {
         if (result.hasErrors()) {
             return "admin/movie-form";
         }
+
+        // Get existing movie to preserve image if no new one is uploaded
+        Optional<Movie> existingMovie = movieService.findMovieById(id);
+        if (existingMovie.isEmpty()) {
+            return "redirect:/admin/dashboard";
+        }
+
+        if (!imageFile.isEmpty()) {
+            try {
+                // Delete old image if exists
+                String oldImageUrl = existingMovie.get().getImageUrl();
+                if (oldImageUrl != null && oldImageUrl.startsWith("/uploads/movies/")) {
+                    Path oldImagePath = Paths.get(UPLOAD_DIR + oldImageUrl.substring("/uploads/movies/".length()));
+                    Files.deleteIfExists(oldImagePath);
+                }
+
+                // Save new image
+                String originalFilename = imageFile.getOriginalFilename();
+                String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+                String filename = UUID.randomUUID().toString() + extension;
+                
+                Path uploadPath = Paths.get(UPLOAD_DIR);
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+                Files.copy(imageFile.getInputStream(), uploadPath.resolve(filename));
+                
+                movie.setImageUrl("/uploads/movies/" + filename);
+            } catch (IOException e) {
+                result.rejectValue("imageUrl", "error.movie", "Failed to upload image");
+                return "admin/movie-form";
+            }
+        } else {
+            // Keep existing image URL if no new image is uploaded
+            movie.setImageUrl(existingMovie.get().getImageUrl());
+        }
+
         movie.setId(id);
         movieService.saveMovie(movie);
         return "redirect:/admin/dashboard";
@@ -74,6 +147,20 @@ public class AdminController {
 
     @GetMapping("/movies/delete/{id}")
     public String deleteMovie(@PathVariable Long id) {
+        // Delete movie image if exists
+        Optional<Movie> movie = movieService.findMovieById(id);
+        if (movie.isPresent() && movie.get().getImageUrl() != null 
+            && movie.get().getImageUrl().startsWith("/uploads/movies/")) {
+            try {
+                String filename = movie.get().getImageUrl().substring("/uploads/movies/".length());
+                Path imagePath = Paths.get(UPLOAD_DIR + filename);
+                Files.deleteIfExists(imagePath);
+            } catch (IOException e) {
+                // Log error but continue with deletion
+                e.printStackTrace();
+            }
+        }
+        
         movieService.deleteMovie(id);
         return "redirect:/admin/dashboard";
     }

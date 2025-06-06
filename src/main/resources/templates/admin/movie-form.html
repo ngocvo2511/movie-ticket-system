@@ -19,7 +19,7 @@
         </div>
         <div class="card-body">
           <form th:action="${movie.id == null ? '/admin/movies/add' : '/admin/movies/edit/' + movie.id}"
-                method="post" th:object="${movie}">
+                method="post" th:object="${movie}" enctype="multipart/form-data">
 
             <input type="hidden" th:field="*{id}" />
 
@@ -61,11 +61,15 @@
             </div>
 
             <div class="mb-3">
-              <label for="imageUrl" class="form-label">Image URL</label>
-              <input type="url" class="form-control" id="imageUrl" th:field="*{imageUrl}"
-                     th:classappend="${#fields.hasErrors('imageUrl')} ? 'is-invalid' : ''">
-              <div class="invalid-feedback" th:if="${#fields.hasErrors('imageUrl')}" th:errors="*{imageUrl}">Image URL error</div>
-              <small class="text-muted">Enter a URL to an image for this movie</small>
+              <label for="imageFile" class="form-label">Movie Image</label>
+              <input type="file" class="form-control" id="imageFile" name="imageFile" accept="image/*">
+              <small class="text-muted">Upload an image for this movie (JPG, PNG files only)</small>
+              
+              <!-- Show current image if editing -->
+              <div th:if="${movie.imageUrl != null}" class="mt-2">
+                <img th:src="${movie.imageUrl}" alt="Current movie image" style="max-width: 200px; height: auto;" class="img-thumbnail">
+                <p class="text-muted">Current image</p>
+              </div>
             </div>
 
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">

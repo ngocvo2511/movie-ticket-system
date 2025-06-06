@@ -204,6 +204,11 @@ public class BookingService {
                 return false;
             }
 
+            // Check if ticket is already canceled
+            if (ticket.getStatus() == Ticket.TicketStatus.CANCELED) {
+                return false;
+            }
+
             // Cancel the ticket
             ticket.setStatus(Ticket.TicketStatus.CANCELED);
             ticketRepository.save(ticket);
@@ -213,7 +218,10 @@ public class BookingService {
 
             if (reservationOpt.isPresent()) {
                 SeatReservation reservation = reservationOpt.get();
+                // Reset both reserved and confirmed status
                 reservation.setReserved(false);
+                reservation.setConfirmed(false);
+                reservation.setReservationExpiry(null);
                 seatReservationRepository.save(reservation);
             }
 

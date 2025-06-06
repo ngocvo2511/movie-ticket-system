@@ -17,15 +17,15 @@ import java.util.List;
 @Slf4j
 public class ConcurrentBookingService {
     private final BookingService bookingService;
-    
+    private final int processorCount = Runtime.getRuntime().availableProcessors();
     // Thread pool để xử lý các yêu cầu đặt vé đồng thời
-    private final ExecutorService bookingExecutor = Executors.newFixedThreadPool(10);
+    private final ExecutorService bookingExecutor = Executors.newFixedThreadPool(processorCount * 2);
     
     // Cache để lưu trữ trạng thái ghế, sử dụng ConcurrentHashMap để thread-safe
     private final Map<String, ReentrantLock> seatLocks = new ConcurrentHashMap<>();
     
     // Semaphore để giới hạn số lượng đặt vé đồng thời
-    private final Semaphore bookingLimiter = new Semaphore(20);
+    private final Semaphore bookingLimiter = new Semaphore(processorCount * 4);
 
     /**
      * Đặt nhiều ghế đồng thời cho một screening
@@ -67,7 +67,7 @@ public class ConcurrentBookingService {
 
                     if (needsRollback || successfulReservations.size() != seatIds.size()) {
                         rollbackReservations(screeningId, successfulReservations);
-                        return new BookingResult(false, "Không thể đặt tất cả các ghế. Vui lòng thử lại.");
+                        return new BookingResult(false, "Not all seats available. Please try again.");
                     }
 
                     // Chỉ trả về kết quả đặt chỗ thành công, chưa tạo vé
